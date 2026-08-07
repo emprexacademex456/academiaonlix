@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema Educativo - JSONBin</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f0f4f8; display: flex; justify-content: center; padding: 30px; }
+        .container { max-width: 1100px; width: 100%; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
+        .hidden { display: none !important; }
+        .btn { background: #2a7de1; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .btn-danger { background: #e14a4a; }
+        .btn-success { background: #28a745; }
+        .btn-outline { background: transparent; border: 2px solid #2a7de1; color: #2a7de1; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 5px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 2px solid #dce3ed; border-radius: 10px; }
+        .card { background: #f9fafc; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #e8ecf3; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .badge { background: #2a7de1; color: white; padding: 4px 12px; border-radius: 30px; font-size: 12px; }
+        .menu { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 30px; border-bottom: 2px solid #e8ecf3; padding-bottom: 20px; }
+        .menu a { padding: 8px 16px; border-radius: 30px; cursor: pointer; text-decoration: none; color: #1a2b4c; }
+        .menu a.active { background: #2a7de1; color: white; }
+        .user-info { display: flex; align-items: center; gap: 15px; margin-left: auto; }
+        .alert { padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .status-bar { background: #eef2f7; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .status-bar .status-ok { color: #28a745; font-weight: 600; }
+        .status-bar .status-error { color: #e14a4a; font-weight: 600; }
+        .pregunta-item { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #e8ecf3; }
+        .pregunta-item .opcion { display: block; padding: 5px 10px; margin: 3px 0; border-radius: 6px; background: #f4f7fc; }
+        .pregunta-item .opcion.correcta { background: #d4edda; border-left: 4px solid #28a745; }
+        .mt-20 { margin-top: 20px; }
+        .text-center { text-align: center; }
+        @media (max-width: 768px) { .container { padding: 15px; } .menu { flex-direction: column; } .user-info { margin-left: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app">
+    <!-- Login -->
+    <div id="login-view">
+        <h1 class="text-center">📚 Bienvenido</h1>
+        <div id="login-alert" class="alert hidden"></div>
+        <form id="login-form" style="max-width:400px; margin:30px auto;">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="login-email" placeholder="ejemplo@correo.com" required>
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="login-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn" style="width:100%; padding:14px;">Iniciar Sesión</button>
+            <p class="text-center mt-20">¿No tienes cuenta? <a href="#" id="go-to-register" style="color:#2a7de1;">Regístrate</a></p>
+        </form>
+    </div>
+
+    <!-- Register -->
+    <div id="register-view" class="hidden">
+        <h1 class="text-center">📝 Crear cuenta</h1>
+        <div id="register-alert" class="alert hidden"></div>
+        <form id="register-form" style="max-width:400px; margin:30px auto;">
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" id="register-name" placeholder="Tu nombre" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="register-email" placeholder="ejemplo@correo.com" required>
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="register-password" placeholder="Mínimo 6 caracteres" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label>Confirmar contraseña</label>
+                <input type="password" id="register-password-confirm" placeholder="Repite la contraseña" required>
+            </div>
+            <input type="hidden" id="register-role" value="user">
+            <button type="submit" class="btn btn-success" style="width:100%; padding:14px;">Registrarse</button>
+            <p class="text-center mt-20">¿Ya tienes cuenta? <a href="#" id="go-to-login" style="color:#2a7de1;">Inicia sesión</a></p>
+        </form>
+    </div>
+
+    <!-- Dashboard Admin -->
+    <div id="admin-dashboard" class="hidden">
+        <div class="flex-between">
+            <h2>👑 Panel Admin</h2>
+            <div class="user-info">
+                <span id="admin-user-name"></span>
+                <button class="btn btn-danger" id="logout-btn">Cerrar Sesión</button>
+            </div>
+        </div>
+        <div id="status-bar-admin" class="status-bar">
+            <span id="status-text-admin">🔍 Conectando a JSONBin...</span>
+            <span id="status-icon-admin">⏳</span>
+        </div>
+        <div class="menu" id="admin-menu">
+            <a class="active" data-view="admin-cursos">📋 Cursos</a>
+            <a data-view="admin-crear-curso">➕ Crear Curso</a>
+            <a data-view="admin-crear-clase">📹 Crear Clase</a>
+            <a data-view="admin-crear-cuestionario">📝 Crear Cuestionario</a>
+        </div>
+        <div id="admin-content"></div>
+    </div>
+
+    <!-- Dashboard User -->
+    <div id="user-dashboard" class="hidden">
+        <div class="flex-between">
+            <h2>📖 Mis Cursos</h2>
+            <div class="user-info">
+                <span id="user-name-display"></span>
+                <button class="btn btn-danger" id="logout-btn-user">Cerrar Sesión</button>
+            </div>
+        </div>
+        <div id="status-bar-user" class="status-bar">
+            <span id="status-text-user">🔍 Conectando a JSONBin...</span>
+            <span id="status-icon-user">⏳</span>
+        </div>
+        <div class="menu" id="user-menu">
+            <a class="active" data-view="user-cursos">📚 Ver Cursos</a>
+        </div>
+        <div id="user-content"></div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    //  CONFIGURACIÓN JSONBin - ¡SOLO CAMBIAR EL ID!
+    // ============================================================
+    const BIN_ID = 'TU_BIN_ID';  // Ej: '67890abcdef'
+
+    // ============================================================
+    //  FUNCIONES PARA LEER/ESCRIBIR EN JSONBin
+    // ============================================================
+    let datosCache = null;
+
+    async function cargarDatosRemotos() {
+        const statusText = document.querySelector('#status-text-admin, #status-text-user');
+        const statusIcon = document.querySelector('#status-icon-admin, #status-icon-user');
+        if (statusText) statusText.textContent = '🔄 Conectando a JSONBin...';
+        if (statusIcon) statusIcon.textContent = '⏳';
+
+        try {
+            // Leer el bin
+            const url = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+            const response = await fetch(url, {
+                headers: {
+                    'X-Master-Key': '$2a$10$tI5Q0.H9qS3zGx0xGx0xGx'  // Clave pública de JSONBin (no es un token)
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('❌ Bin no encontrado. Verifica el ID.');
+                } else {
+                    throw new Error(`❌ Error HTTP ${response.status}`);
+                }
+            }
+
+            const result = await response.json();
+            const data = result.record;
+
+            // Si el bin está vacío o no tiene estructura, inicializamos
+            if (!data || !data.users) {
+                const vacio = { users: [], cursos: [], clases: [], cuestionarios: [] };
+                await guardarDatosRemotos(vacio);
+                return vacio;
+            }
+
+            datosCache = data;
+            actualizarEstado('✅ Conectado a JSONBin', '✅', 'status-ok');
+            return data;
+        } catch (error) {
+            console.error('Error al cargar datos:', error);
+            actualizarEstado('❌ ' + error.message, '❌', 'status-error');
+            throw error;
+        }
+    }
+
+    async function guardarDatosRemotos(data) {
+        try {
+            const url = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': '$2a$10$tI5Q0.H9qS3zGx0xGx0xGx'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error HTTP ${response.status}`);
+            }
+
+            datosCache = data;
+            actualizarEstado('✅ Guardado en JSONBin', '✅', 'status-ok');
+            return await response.json();
+        } catch (error) {
+            console.error('Error al guardar:', error);
+            actualizarEstado('❌ Error al guardar: ' + error.message, '❌', 'status-error');
+            throw error;
+        }
+    }
+
+    function actualizarEstado(texto, icono, clase) {
+        const statusTexts = document.querySelectorAll('#status-text-admin, #status-text-user');
+        const statusIcons = document.querySelectorAll('#status-icon-admin, #status-icon-user');
+        statusTexts.forEach(el => { el.textContent = texto; el.className = clase || ''; });
+        statusIcons.forEach(el => { el.textContent = icono; });
+    }
+
+    // ============================================================
+    //  UTILERÍAS Y LOGICA DEL SISTEMA (igual que antes)
+    // ============================================================
+    function generarId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+    }
+
+    async function obtenerDatos() {
+        if (!datosCache) {
+            await cargarDatosRemotos();
+        }
+        return datosCache;
+    }
+
+    async function guardarDatos(data) {
+        await guardarDatosRemotos(data);
+    }
+
+    // ---- Inicialización: crear admin si no hay usuarios ----
+    async function inicializarSistema() {
+        try {
+            const data = await cargarDatosRemotos();
+            if (!data.users || data.users.length === 0) {
+                const admin = {
+                    id: generarId(),
+                    name: 'Administrador',
+                    email: 'admin@sistema.com',
+                    password: 'admin123',
+                    role: 'admin'
+                };
+                data.users = [admin];
+                data.cursos = [];
+                data.clases = [];
+                data.cuestionarios = [];
+                await guardarDatosRemotos(data);
+                datosCache = data;
+                console.log('🔐 Admin creado: admin@sistema.com / admin123');
+            } else {
+                datosCache = data;
+            }
+        } catch (e) {
+            console.error('Error en inicialización:', e);
+            const loginAlert = document.getElementById('login-alert');
+            if (loginAlert) {
+                loginAlert.textContent = '⚠️ No se pudo conectar con JSONBin. Verifica el ID.';
+                loginAlert.className = 'alert alert-error';
+                loginAlert.classList.remove('hidden');
+            }
+        }
+    }
+
+    // ---- Variables globales ----
+    let currentUser = null;
+
+    const loginView = document.getElementById('login-view');
+    const registerView = document.getElementById('register-view');
+    const adminDashboard = document.getElementById('admin-dashboard');
+    const userDashboard = document.getElementById('user-dashboard');
+    const adminContent = document.getElementById('admin-content');
+    const userContent = document.getElementById('user-content');
+
+    function mostrarVista(vista) {
+        loginView.classList.add('hidden');
+        registerView.classList.add('hidden');
+        adminDashboard.classList.add('hidden');
+        userDashboard.classList.add('hidden');
+        if (vista === 'login') loginView.classList.remove('hidden');
+        else if (vista === 'register') registerView.classList.remove('hidden');
+        else if (vista === 'admin') adminDashboard.classList.remove('hidden');
+        else if (vista === 'user') userDashboard.classList.remove('hidden');
+    }
+
+    function mostrarAlerta(id, mensaje, tipo = 'success') {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = mensaje;
+            el.className = `alert alert-${tipo}`;
+            el.classList.remove('hidden');
+        }
+    }
+
+    function ocultarAlerta(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    }
+
+    // ---- Autenticación ----
+    async function login(email, password) {
+        try {
+            const data = await obtenerDatos();
+            const user = data.users.find(u => u.email === email && u.password === password);
+            if (!user) {
+                mostrarAlerta('login-alert', '❌ Credenciales incorrectas.', 'error');
+                return false;
+            }
+            currentUser = user;
+            localStorage.setItem('session', JSON.stringify(user));
+            redirigirSegunRol(user);
+            return true;
+        } catch (e) {
+            mostrarAlerta('login-alert', '❌ Error al conectar: ' + e.message, 'error');
+            return false;
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('session');
+        mostrarVista('login');
+        document.getElementById('login-form').reset();
+        ocultarAlerta('login-alert');
+    }
+
+    function redirigirSegunRol(user) {
+        if (user.role === 'admin') {
+            mostrarVista('admin');
+            document.getElementById('admin-user-name').textContent = '👤 ' + user.name;
+            cargarAdminView('admin-cursos');
+        } else {
+            mostrarVista('user');
+            document.getElementById('user-name-display').textContent = '👤 ' + user.name;
+            cargarUserView('user-cursos');
+        }
+    }
+
+    // ---- Registro ----
+    async function registrarUsuario(name, email, password, confirm) {
+        if (password !== confirm) {
+            mostrarAlerta('register-alert', '❌ Las contraseñas no coinciden.', 'error');
+            return false;
+        }
+        if (password.length < 6) {
+            mostrarAlerta('register-alert', '❌ La contraseña debe tener al menos 6 caracteres.', 'error');
+            return false;
+        }
+        try {
+            const data = await obtenerDatos();
+            if (data.users.find(u => u.email === email)) {
+                mostrarAlerta('register-alert', '❌ Ya existe un usuario con ese email.', 'error');
+                return false;
+            }
+            if (email === 'admin@sistema.com') {
+                mostrarAlerta('register-alert', '❌ No puedes usar ese email.', 'error');
+                return false;
+            }
+            const newUser = {
+                id: generarId(),
+                name,
+                email,
+                password,
+                role: 'user'
+            };
+            data.users.push(newUser);
+            await guardarDatos(data);
+            mostrarAlerta('register-alert', '✅ Registro exitoso. Inicia sesión.', 'success');
+            document.getElementById('register-form').reset();
+            setTimeout(() => {
+                ocultarAlerta('register-alert');
+                mostrarVista('login');
+            }, 1500);
+            return true;
+        } catch (e) {
+            mostrarAlerta('register-alert', '❌ Error al guardar: ' + e.message, 'error');
+            return false;
+        }
+    }
+
+    // ---- ADMIN: Funciones ----
+    function cargarAdminView(view) {
+        document.querySelectorAll('#admin-menu a').forEach(a => a.classList.remove('active'));
+        const target = document.querySelector(`#admin-menu a[data-view="${view}"]`);
+        if (target) target.classList.add('active');
+
+        switch (view) {
+            case 'admin-cursos': renderAdminCursos(); break;
+            case 'admin-crear-curso': renderAdminCrearCurso(); break;
+            case 'admin-crear-clase': renderAdminCrearClase(); break;
+            case 'admin-crear-cuestionario': renderAdminCrearCuestionario(); break;
+            default: adminContent.innerHTML = '<p>Selecciona una opción.</p>';
+        }
+    }
+
+    async function renderAdminCursos() {
+        try {
+            const data = await obtenerDatos();
+            const cursos = data.cursos || [];
+            let html = `<h3>📋 Todos los Cursos (${cursos.length})</h3>`;
+            if (cursos.length === 0) html += '<p>No hay cursos.</p>';
+            else {
+                cursos.forEach(curso => {
+                    const clases = (data.clases || []).filter(c => c.cursoId === curso.id);
+                    const cues = (data.cuestionarios || []).filter(c => c.cursoId === curso.id);
+                    html += `
+                        <div class="card">
+                            <div class="card-header">
+                                <div><strong>${curso.titulo}</strong> <span class="badge">${clases.length} clases | ${cues.length} cuestionarios</span></div>
+                                <button class="btn btn-danger" onclick="eliminarCurso('${curso.id}')">Eliminar</button>
+                            </div>
+                            <p>${curso.descripcion || ''}</p>
+                            <button class="btn btn-outline" onclick="verDetalleCursoAdmin('${curso.id}')">Ver detalle</button>
+                        </div>
+                    `;
+                });
+            }
+            adminContent.innerHTML = html;
+        } catch (e) {
+            adminContent.innerHTML = `<div class="alert alert-error">❌ Error: ${e.message}</div>`;
+        }
+    }
+
+    async function verDetalleCursoAdmin(cursoId) {
+        try {
+            const data = await obtenerDatos();
+            const curso = (data.cursos || []).find(c => c.id === cursoId);
+            if (!curso) return;
+            const clases = (data.clases || []).filter(c => c.cursoId === cursoId);
+            const cues = (data.cuestionarios || []).filter(c => c.cursoId === cursoId);
+
+            let html = `
+                <div class="card">
+                    <div class="flex-between">
+                        <h3>📘 ${curso.titulo}</h3>
+                        <button class="btn" onclick="renderAdminCursos()">⬅ Volver</button>
+                    </div>
+                    <p>${curso.descripcion || ''}</p>
+                    <hr>
+                    <h4>Clases (${clases.length})</h4>
+            `;
+            if (clases.length === 0) html += '<p>No hay clases.</p>';
+            else {
+                clases.forEach(clase => {
+                    html += `
+                        <div class="card" style="background:white;">
+                            <strong>${clase.titulo}</strong>
+                            ${clase.archivoHTML ? `
+                                <div>
+                                    <span class="badge">📄 Archivo HTML</span>
+                                    <button class="btn btn-outline" onclick="verArchivoHTML('${clase.id}', 'clase')">Ver HTML</button>
+                                </div>
+                            ` : `<p>${clase.contenido || ''}</p>`}
+                            <small>${clase.fecha || ''}</small>
+                        </div>
+                    `;
+                });
+            }
+            html += `<h4 class="mt-20">Cuestionarios (${cues.length})</h4>`;
+            if (cues.length === 0) html += '<p>No hay cuestionarios.</p>';
+            else {
+                cues.forEach(cue => {
+                    html += `
+                        <div class="card" style="background:white;">
+                            <strong>${cue.titulo}</strong>
+                            ${cue.archivoHTML ? `
+                                <div>
+                                    <span class="badge">📄 Archivo HTML</span>
+                                    <button class="btn btn-outline" onclick="verArchivoHTML('${cue.id}', 'cuestionario')">Ver HTML</button>
+                                </div>
+                            ` : `<span>${cue.preguntas ? cue.preguntas.length : 0} preguntas</span>`}
+                        </div>
+                    `;
+                });
+            }
+            adminContent.innerHTML = html;
+        } catch (e) {
+            adminContent.innerHTML = `<div class="alert alert-error">❌ Error: ${e.message}</div>`;
+        }
+    }
+
+    function verArchivoHTML(id, tipo) {
+        try {
+            const data = datosCache;
+            let item = null;
+            if (tipo === 'clase') item = (data.clases || []).find(c => c.id === id);
+            else if (tipo === 'cuestionario') item = (data.cuestionarios || []).find(c => c.id === id);
+            if (!item || !item.archivoHTML) {
+                alert('No se encontró contenido HTML.');
+                return;
+            }
+            const ventana = window.open('', '_blank', 'width=900,height=600');
+            ventana.document.write(item.archivoHTML);
+            ventana.document.close();
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    async function eliminarCurso(cursoId) {
+        if (!confirm('¿Eliminar curso y su contenido?')) return;
+        try {
+            const data = await obtenerDatos();
+            data.cursos = (data.cursos || []).filter(c => c.id !== cursoId);
+            data.clases = (data.clases || []).filter(c => c.cursoId !== cursoId);
+            data.cuestionarios = (data.cuestionarios || []).filter(c => c.cursoId !== cursoId);
+            await guardarDatos(data);
+            renderAdminCursos();
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    // ---- ADMIN: Crear curso ----
+    function renderAdminCrearCurso() {
+        adminContent.innerHTML = `
+            <h3>➕ Crear Nuevo Curso</h3>
+            <form id="form-crear-curso" style="max-width:500px;">
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="curso-titulo" placeholder="Ej: Matemáticas" required />
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="curso-descripcion" placeholder="Descripción breve..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">Guardar Curso</button>
+            </form>
+            <div id="curso-creado-alert" class="alert hidden mt-20"></div>
+        `;
+        document.getElementById('form-crear-curso').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const titulo = document.getElementById('curso-titulo').value.trim();
+            const descripcion = document.getElementById('curso-descripcion').value.trim();
+            if (!titulo) return;
+            try {
+                const data = await obtenerDatos();
+                const nuevo = {
+                    id: generarId(),
+                    titulo,
+                    descripcion,
+                    creador: currentUser ? currentUser.email : 'admin'
+                };
+                if (!data.cursos) data.cursos = [];
+                data.cursos.push(nuevo);
+                await guardarDatos(data);
+                mostrarAlerta('curso-creado-alert', '✅ Curso creado.', 'success');
+                document.getElementById('form-crear-curso').reset();
+                setTimeout(() => ocultarAlerta('curso-creado-alert'), 2500);
+            } catch (e) {
+                mostrarAlerta('curso-creado-alert', '❌ Error: ' + e.message, 'error');
+            }
+        });
+    }
+
+    // ---- ADMIN: Crear clase ----
+    function renderAdminCrearClase() {
+        const data = datosCache;
+        const cursos = data?.cursos || [];
+        let options = '<option value="">Selecciona un curso</option>';
+        cursos.forEach(c => options += `<option value="${c.id}">${c.titulo}</option>`);
+
+        adminContent.innerHTML = `
+            <h3>📹 Crear Nueva Clase</h3>
+            <form id="form-crear-clase" style="max-width:600px;">
+                <div class="form-group">
+                    <label>Curso</label>
+                    <select id="clase-curso" required>${options}</select>
+                </div>
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="clase-titulo" placeholder="Ej: Introducción" required />
+                </div>
+                <div class="form-group">
+                    <label>Contenido (opcional)</label>
+                    <textarea id="clase-contenido" placeholder="Descripción..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Subir archivo HTML (opcional)</label>
+                    <input type="file" id="clase-archivo" accept=".html,.htm" />
+                    <div id="clase-archivo-info" class="archivo-info hidden"></div>
+                </div>
+                <button type="submit" class="btn btn-success">Guardar Clase</button>
+            </form>
+            <div id="clase-creada-alert" class="alert hidden mt-20"></div>
+        `;
+
+        document.getElementById('clase-archivo').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const info = document.getElementById('clase-archivo-info');
+            if (file) {
+                info.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(2)} KB)`;
+                info.classList.remove('hidden');
+            } else {
+                info.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('form-crear-clase').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const cursoId = document.getElementById('clase-curso').value;
+            const titulo = document.getElementById('clase-titulo').value.trim();
+            const contenido = document.getElementById('clase-contenido').value.trim();
+            const archivoInput = document.getElementById('clase-archivo');
+            if (!cursoId || !titulo) return;
+
+            const data = await obtenerDatos();
+            const nuevaClase = {
+                id: generarId(),
+                cursoId,
+                titulo,
+                contenido: contenido || '',
+                fecha: new Date().toLocaleDateString(),
+                archivoHTML: null
+            };
+
+            if (archivoInput.files.length > 0) {
+                const file = archivoInput.files[0];
+                const reader = new FileReader();
+                reader.onload = async function(event) {
+                    nuevaClase.archivoHTML = event.target.result;
+                    if (!data.clases) data.clases = [];
+                    data.clases.push(nuevaClase);
+                    await guardarDatos(data);
+                    mostrarAlerta('clase-creada-alert', '✅ Clase creada con HTML.', 'success');
+                    document.getElementById('form-crear-clase').reset();
+                    document.getElementById('clase-archivo-info').classList.add('hidden');
+                    setTimeout(() => ocultarAlerta('clase-creada-alert'), 2500);
+                };
+                reader.readAsText(file);
+            } else {
+                if (!data.clases) data.clases = [];
+                data.clases.push(nuevaClase);
+                await guardarDatos(data);
+                mostrarAlerta('clase-creada-alert', '✅ Clase creada.', 'success');
+                document.getElementById('form-crear-clase').reset();
+                document.getElementById('clase-archivo-info').classList.add('hidden');
+                setTimeout(() => ocultarAlerta('clase-creada-alert'), 2500);
+            }
+        });
+    }
+
+    // ---- ADMIN: Crear cuestionario ----
+    function renderAdminCrearCuestionario() {
+        const data = datosCache;
+        const cursos = data?.cursos || [];
+        let options = '<option value="">Selecciona un curso</option>';
+        cursos.forEach(c => options += `<option value="${c.id}">${c.titulo}</option>`);
+
+        adminContent.innerHTML = `
+            <h3>📝 Crear Cuestionario</h3>
+            <form id="form-crear-cuestionario" style="max-width:600px;">
+                <div class="form-group">
+                    <label>Curso</label>
+                    <select id="cue-curso" required>${options}</select>
+                </div>
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="cue-titulo" placeholder="Ej: Examen parcial" required />
+                </div>
+                <div class="form-group" id="preguntas-container">
+                    <label>Preguntas (si no usas HTML)</label>
+                    <div id="preguntas-list"></div>
+                    <button type="button" class="btn btn-outline" id="agregar-pregunta-btn">➕ Agregar Pregunta</button>
+                </div>
+                <div class="form-group">
+                    <label>O sube un archivo HTML con el cuestionario</label>
+                    <input type="file" id="cue-archivo" accept=".html,.htm" />
+                    <div id="cue-archivo-info" class="archivo-info hidden"></div>
+                </div>
+                <button type="submit" class="btn btn-success mt-20">Guardar Cuestionario</button>
+            </form>
+            <div id="cue-creado-alert" class="alert hidden mt-20"></div>
+        `;
+
+        document.getElementById('cue-archivo').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const info = document.getElementById('cue-archivo-info');
+            if (file) {
+                info.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(2)} KB)`;
+                info.classList.remove('hidden');
+            } else {
+                info.classList.add('hidden');
+            }
+        });
+
+        window.preguntasTemp = [];
+
+        function renderPreguntas() {
+            const list = document.getElementById('preguntas-list');
+            if (window.preguntasTemp.length === 0) {
+                list.innerHTML = '<p style="color:#5a6e8a;">No hay preguntas.</p>';
+                return;
+            }
+            let html = '';
+            window.preguntasTemp.forEach((p, idx) => {
+                html += `
+                    <div class="pregunta-item">
+                        <strong>Pregunta ${idx+1}:</strong> ${p.pregunta}
+                        <br><small>Opciones: ${p.opciones.join(' | ')}</small>
+                        <br><small style="color:#28a745;">Correcta: ${p.opciones[p.respuestaCorrecta]}</small>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarPreguntaTemp(${idx})">Eliminar</button>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        window.eliminarPreguntaTemp = function(idx) {
+            window.preguntasTemp.splice(idx, 1);
+            renderPreguntas();
+        };
+
+        document.getElementById('agregar-pregunta-btn').addEventListener('click', function() {
+            const container = document.getElementById('preguntas-container');
+            const formPreg = document.createElement('div');
+            formPreg.className = 'card';
+            formPreg.innerHTML = `
+                <h4>Nueva Pregunta</h4>
+                <div class="form-group">
+                    <label>Enunciado</label>
+                    <input type="text" id="preg-text" placeholder="¿Capital de Francia?" />
+                </div>
+                <div class="form-group">
+                    <label>Opciones (separadas por coma)</label>
+                    <input type="text" id="preg-opciones" placeholder="París, Londres, Madrid" />
+                </div>
+                <div class="form-group">
+                    <label>Índice correcto (0 = primera)</label>
+                    <input type="number" id="preg-correcta" placeholder="0" min="0" />
+                </div>
+                <button class="btn btn-success" id="guardar-pregunta-btn">Guardar</button>
+                <button class="btn" id="cancelar-pregunta-btn">Cancelar</button>
+            `;
+            container.appendChild(formPreg);
+
+            document.getElementById('guardar-pregunta-btn').addEventListener('click', function() {
+                const texto = document.getElementById('preg-text').value.trim();
+                const opcionesStr = document.getElementById('preg-opciones').value.trim();
+                const correcta = parseInt(document.getElementById('preg-correcta').value);
+                if (!texto || !opcionesStr || isNaN(correcta)) {
+                    alert('Completa todos los campos.');
+                    return;
+                }
+                const opciones = opcionesStr.split(',').map(o => o.trim());
+                if (correcta < 0 || correcta >= opciones.length) {
+                    alert('Índice incorrecto.');
+                    return;
+                }
+                window.preguntasTemp.push({
+                    pregunta: texto,
+                    opciones: opciones,
+                    respuestaCorrecta: correcta
+                });
+                renderPreguntas();
+                formPreg.remove();
+            });
+
+            document.getElementById('cancelar-pregunta-btn').addEventListener('click', function() {
+                formPreg.remove();
+            });
+        });
+
+        document.getElementById('form-crear-cuestionario').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const cursoId = document.getElementById('cue-curso').value;
+            const titulo = document.getElementById('cue-titulo').value.trim();
+            const archivoInput = document.getElementById('cue-archivo');
+            if (!cursoId || !titulo) return;
+
+            const data = await obtenerDatos();
+            const nuevoCue = {
+                id: generarId(),
+                cursoId,
+                titulo,
+                preguntas: [],
+                archivoHTML: null
+            };
+
+            if (archivoInput.files.length > 0) {
+                const file = archivoInput.files[0];
+                const reader = new FileReader();
+                reader.onload = async function(event) {
+                    nuevoCue.archivoHTML = event.target.result;
+                    if (!data.cuestionarios) data.cuestionarios = [];
+                    data.cuestionarios.push(nuevoCue);
+                    await guardarDatos(data);
+                    mostrarAlerta('cue-creado-alert', '✅ Cuestionario con HTML.', 'success');
+                    document.getElementById('form-crear-cuestionario').reset();
+                    window.preguntasTemp = [];
+                    renderPreguntas();
+                    document.getElementById('cue-archivo-info').classList.add('hidden');
+                    setTimeout(() => ocultarAlerta('cue-creado-alert'), 2500);
+                };
+                reader.readAsText(file);
+            } else {
+                if (window.preguntasTemp.length === 0) {
+                    alert('Agrega preguntas o sube un HTML.');
+                    return;
+                }
+                nuevoCue.preguntas = JSON.parse(JSON.stringify(window.preguntasTemp));
+                if (!data.cuestionarios) data.cuestionarios = [];
+                data.cuestionarios.push(nuevoCue);
+                await guardarDatos(data);
+                mostrarAlerta('cue-creado-alert', '✅ Cuestionario creado.', 'success');
+                window.preguntasTemp = [];
+                renderPreguntas();
+                document.getElementById('form-crear-cuestionario').reset();
+                document.getElementById('cue-archivo-info').classList.add('hidden');
+                setTimeout(() => ocultarAlerta('cue-creado-alert'), 2500);
+            }
+        });
+    }
+
+    // ---- USER: Funciones ----
+    function cargarUserView(view) {
+        document.querySelectorAll('#user-menu a').forEach(a => a.classList.remove('active'));
+        const target = document.querySelector(`#user-menu a[data-view="${view}"]`);
+        if (target) target.classList.add('active');
+        if (view === 'user-cursos') renderUserCursos();
+    }
+
+    async function renderUserCursos() {
+        try {
+            const data = await obtenerDatos();
+            const cursos = data.cursos || [];
+            let html = `<h3>📚 Cursos Disponibles (${cursos.length})</h3>`;
+            if (cursos.length === 0) html += '<p>No hay cursos disponibles.</p>';
+            else {
+                cursos.forEach(curso => {
+                    html += `
+                        <div class="card curso-item" onclick="verDetalleCursoUser('${curso.id}')">
+                            <div class="card-header">
+                                <strong>${curso.titulo}</strong>
+                                <span class="badge">Ver detalle ➜</span>
+                            </div>
+                            <p>${curso.descripcion || ''}</p>
+                        </div>
+                    `;
+                });
+            }
+            userContent.innerHTML = html;
+        } catch (e) {
+            userContent.innerHTML = `<div class="alert alert-error">❌ Error: ${e.message}</div>`;
+        }
+    }
+
+    async function verDetalleCursoUser(cursoId) {
+        try {
+            const data = await obtenerDatos();
+            const curso = (data.cursos || []).find(c => c.id === cursoId);
+            if (!curso) return;
+            const clases = (data.clases || []).filter(c => c.cursoId === cursoId);
+            const cues = (data.cuestionarios || []).filter(c => c.cursoId === cursoId);
+
+            let html = `
+                <div class="card">
+                    <div class="flex-between">
+                        <h3>📘 ${curso.titulo}</h3>
+                        <button class="btn" onclick="renderUserCursos()">⬅ Volver</button>
+                    </div>
+                    <p>${curso.descripcion || ''}</p>
+                    <hr>
+                    <h4>Clases (${clases.length})</h4>
+            `;
+            if (clases.length === 0) html += '<p>No hay clases.</p>';
+            else {
+                clases.forEach(clase => {
+                    html += `
+                        <div class="card" style="background:white;">
+                            <strong>${clase.titulo}</strong>
+                            ${clase.archivoHTML ? `
+                                <div>
+                                    <span class="badge">📄 Archivo HTML</span>
+                                    <button class="btn btn-outline" onclick="verArchivoHTML('${clase.id}', 'clase')">Ver HTML</button>
+                                </div>
+                            ` : `<p>${clase.contenido || ''}</p>`}
+                            <small>${clase.fecha || ''}</small>
+                        </div>
+                    `;
+                });
+            }
+            html += `<h4 class="mt-20">Cuestionarios (${cues.length})</h4>`;
+            if (cues.length === 0) html += '<p>No hay cuestionarios.</p>';
+            else {
+                cues.forEach(cue => {
+                    html += `
+                        <div class="card" style="background:white; cursor:pointer;" onclick="verCuestionarioUser('${cue.id}')">
+                            <strong>${cue.titulo}</strong>
+                            ${cue.archivoHTML ? `<span class="badge">📄 HTML</span>` : `<span class="badge">${cue.preguntas ? cue.preguntas.length : 0} preguntas</span>`}
+                        </div>
+                    `;
+                });
+            }
+            userContent.innerHTML = html;
+        } catch (e) {
+            userContent.innerHTML = `<div class="alert alert-error">❌ Error: ${e.message}</div>`;
+        }
+    }
+
+    async function verCuestionarioUser(cueId) {
+        try {
+            const data = await obtenerDatos();
+            const cue = (data.cuestionarios || []).find(c => c.id === cueId);
+            if (!cue) return;
+            if (cue.archivoHTML) {
+                verArchivoHTML(cueId, 'cuestionario');
+                return;
+            }
+            let html = `
+                <div class="card">
+                    <div class="flex-between">
+                        <h3>📝 ${cue.titulo}</h3>
+                        <button class="btn" onclick="verDetalleCursoUser('${cue.cursoId}')">⬅ Volver</button>
+                    </div>
+                    <p>Respuestas correctas resaltadas en verde</p>
+                    <hr>
+            `;
+            if (cue.preguntas && cue.preguntas.length > 0) {
+                cue.preguntas.forEach((p, idx) => {
+                    html += `
+                        <div class="pregunta-item">
+                            <strong>${idx+1}. ${p.pregunta}</strong>
+                            <div>
+                                ${p.opciones.map((op, i) => `
+                                    <span class="opcion ${i === p.respuestaCorrecta ? 'correcta' : ''}">
+                                        ${i === p.respuestaCorrecta ? '✅ ' : ''} ${op}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<p>Este cuestionario no tiene preguntas.</p>';
+            }
+            userContent.innerHTML = html;
+        } catch (e) {
+            userContent.innerHTML = `<div class="alert alert-error">❌ Error: ${e.message}</div>`;
+        }
+    }
+
+    // ============================================================
+    //  EVENT LISTENERS
+    // ============================================================
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+        login(email, password);
+    });
+
+    document.getElementById('register-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('register-name').value.trim();
+        const email = document.getElementById('register-email').value.trim();
+        const password = document.getElementById('register-password').value;
+        const confirm = document.getElementById('register-password-confirm').value;
+        registrarUsuario(name, email, password, confirm);
+    });
+
+    document.getElementById('go-to-register').addEventListener('click', function(e) {
+        e.preventDefault();
+        ocultarAlerta('login-alert');
+        mostrarVista('register');
+    });
+    document.getElementById('go-to-login').addEventListener('click', function(e) {
+        e.preventDefault();
+        ocultarAlerta('register-alert');
+        mostrarVista('login');
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', logout);
+    document.getElementById('logout-btn-user').addEventListener('click', logout);
+
+    document.querySelectorAll('#admin-menu a').forEach(enlace => {
+        enlace.addEventListener('click', function(e) {
+            e.preventDefault();
+            cargarAdminView(this.dataset.view);
+        });
+    });
+
+    document.querySelectorAll('#user-menu a').forEach(enlace => {
+        enlace.addEventListener('click', function(e) {
+            e.preventDefault();
+            cargarUserView(this.dataset.view);
+        });
+    });
+
+    // ============================================================
+    //  INICIALIZACIÓN
+    // ============================================================
+    async function init() {
+        await inicializarSistema();
+
+        const session = localStorage.getItem('session');
+        if (session) {
+            try {
+                const user = JSON.parse(session);
+                const data = await obtenerDatos();
+                const found = (data.users || []).find(u => u.id === user.id && u.email === user.email);
+                if (found) {
+                    currentUser = found;
+                    redirigirSegunRol(found);
+                    return;
+                } else {
+                    localStorage.removeItem('session');
+                }
+            } catch (e) {
+                localStorage.removeItem('session');
+            }
+        }
+        mostrarVista('login');
+    }
+
+    init();
+
+    console.log('🔐 Admin: admin@sistema.com / admin123');
+    console.log('💡 Usando JSONBin (sin token). Solo cambia el BIN_ID.');
+</script>
+
+</body>
+</html>
