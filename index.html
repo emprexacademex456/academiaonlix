@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema Educativo - JSONBin</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -29,8 +29,8 @@
         .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
         .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .status-bar { background: #eef2f7; padding: 12px 18px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .status-bar .status-ok { color: #28a745; font-weight: 600; }
-        .status-bar .status-error { color: #e14a4a; font-weight: 600; }
+        .status-ok { color: #28a745; font-weight: 600; }
+        .status-error { color: #e14a4a; font-weight: 600; }
         .pregunta-item { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #e8ecf3; }
         .pregunta-item .opcion { display: block; padding: 5px 10px; margin: 3px 0; border-radius: 6px; background: #f4f7fc; }
         .pregunta-item .opcion.correcta { background: #d4edda; border-left: 4px solid #28a745; }
@@ -97,7 +97,7 @@
             </div>
         </div>
         <div id="status-bar-admin" class="status-bar">
-            <span id="status-text-admin">🔍 Conectando a JSONBin...</span>
+            <span id="status-text-admin">🔍 Verificando conexión...</span>
             <span id="status-icon-admin">⏳</span>
         </div>
         <div class="menu" id="admin-menu">
@@ -119,7 +119,7 @@
             </div>
         </div>
         <div id="status-bar-user" class="status-bar">
-            <span id="status-text-user">🔍 Conectando a JSONBin...</span>
+            <span id="status-text-user">🔍 Verificando conexión...</span>
             <span id="status-icon-user">⏳</span>
         </div>
         <div class="menu" id="user-menu">
@@ -131,51 +131,45 @@
 
 <script>
     // ============================================================
-    //  CONFIGURACIÓN JSONBin - ¡SOLO CAMBIAR EL ID!
+    //  CONFIGURACIÓN JSONBIN - ¡CAMBIAR AQUÍ!
     // ============================================================
-    const BIN_ID = '6a765349f5f4af5e29f97604';  // Ej: '67890abcdef'
+    const JSONBIN_ID = '6a765349f5f4af5e29f97604';              // Ej: 'abc123def456'
+    const JSONBIN_ACCESS_KEY = '$2a$10$SbaksfmmKKj8ljgarHjdRO8lD2IKBDYLMebR5zeC6M/xz5Eq9UuDu'; // Tu Access Key (de la cuenta)
+
+    const API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
 
     // ============================================================
-    //  FUNCIONES PARA LEER/ESCRIBIR EN JSONBin
+    //  FUNCIONES DE JSONBIN
     // ============================================================
     let datosCache = null;
 
     async function cargarDatosRemotos() {
-        const statusText = document.querySelector('#status-text-admin, #status-text-user');
-        const statusIcon = document.querySelector('#status-icon-admin, #status-icon-user');
-        if (statusText) statusText.textContent = '🔄 Conectando a JSONBin...';
-        if (statusIcon) statusIcon.textContent = '⏳';
-
+        actualizarEstado('🔄 Cargando desde JSONBin...', '⏳');
         try {
-            // Leer el bin
-            const url = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-            const response = await fetch(url, {
+            // Para leer bins públicos no se necesita clave, pero la enviamos por si acaso
+            const response = await fetch(API_URL, {
                 headers: {
-                    'X-Master-Key': '$2a$10$tI5Q0.H9qS3zGx0xGx0xGx'  // Clave pública de JSONBin (no es un token)
+                    'X-Access-Key': JSONBIN_ACCESS_KEY,
+                    'Content-Type': 'application/json'
                 }
             });
 
+            if (response.status === 401) {
+                throw new Error('❌ Error 401: Access Key inválida o no tienes permisos para este bin. Verifica tu clave y que el bin sea público.');
+            }
+            if (response.status === 404) {
+                throw new Error('❌ Error 404: Bin no encontrado. Verifica el ID.');
+            }
             if (!response.ok) {
-                if (response.status === 404) {
-                    throw new Error('❌ Bin no encontrado. Verifica el ID.');
-                } else {
-                    throw new Error(`❌ Error HTTP ${response.status}`);
-                }
+                throw new Error(`❌ Error HTTP ${response.status}: ${response.statusText}`);
             }
 
-            const result = await response.json();
-            const data = result.record;
-
-            // Si el bin está vacío o no tiene estructura, inicializamos
-            if (!data || !data.users) {
-                const vacio = { users: [], cursos: [], clases: [], cuestionarios: [] };
-                await guardarDatosRemotos(vacio);
-                return vacio;
-            }
-
-            datosCache = data;
+            const data = await response.json();
+            // JSONBin devuelve { record: { ... } }
+            const contenido = data.record || { users: [], cursos: [], clases: [], cuestionarios: [] };
+            datosCache = contenido;
             actualizarEstado('✅ Conectado a JSONBin', '✅', 'status-ok');
-            return data;
+            return contenido;
         } catch (error) {
             console.error('Error al cargar datos:', error);
             actualizarEstado('❌ ' + error.message, '❌', 'status-error');
@@ -184,27 +178,33 @@
     }
 
     async function guardarDatosRemotos(data) {
+        actualizarEstado('🔄 Guardando en JSONBin...', '⏳');
         try {
-            const url = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-            const response = await fetch(url, {
+            const response = await fetch(API_URL, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': '$2a$10$tI5Q0.H9qS3zGx0xGx0xGx'
+                    'X-Access-Key': JSONBIN_ACCESS_KEY,
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
             });
 
+            if (response.status === 401) {
+                throw new Error('❌ Error 401: Access Key inválida. Verifica tu clave de acceso en la configuración de tu cuenta JSONBin.');
+            }
+            if (response.status === 404) {
+                throw new Error('❌ Error 404: Bin no encontrado. Verifica el ID.');
+            }
             if (!response.ok) {
-                throw new Error(`Error HTTP ${response.status}`);
+                throw new Error(`❌ Error HTTP ${response.status}: ${response.statusText}`);
             }
 
             datosCache = data;
-            actualizarEstado('✅ Guardado en JSONBin', '✅', 'status-ok');
+            actualizarEstado('✅ Datos guardados en JSONBin', '✅', 'status-ok');
             return await response.json();
         } catch (error) {
-            console.error('Error al guardar:', error);
-            actualizarEstado('❌ Error al guardar: ' + error.message, '❌', 'status-error');
+            console.error('Error al guardar datos:', error);
+            actualizarEstado('❌ ' + error.message, '❌', 'status-error');
             throw error;
         }
     }
@@ -217,7 +217,7 @@
     }
 
     // ============================================================
-    //  UTILERÍAS Y LOGICA DEL SISTEMA (igual que antes)
+    //  UTILERÍAS
     // ============================================================
     function generarId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
@@ -253,21 +253,23 @@
                 await guardarDatosRemotos(data);
                 datosCache = data;
                 console.log('🔐 Admin creado: admin@sistema.com / admin123');
+                mostrarAlertaGlobal('✅ Admin creado: admin@sistema.com / admin123', 'success');
             } else {
                 datosCache = data;
+                console.log('✅ Datos cargados correctamente.');
+                mostrarAlertaGlobal(`✅ Datos cargados: ${data.users.length} usuarios, ${data.cursos.length} cursos`, 'success');
             }
         } catch (e) {
             console.error('Error en inicialización:', e);
-            const loginAlert = document.getElementById('login-alert');
-            if (loginAlert) {
-                loginAlert.textContent = '⚠️ No se pudo conectar con JSONBin. Verifica el ID.';
-                loginAlert.className = 'alert alert-error';
-                loginAlert.classList.remove('hidden');
-            }
+            mostrarAlertaGlobal('❌ Error al conectar con JSONBin: ' + e.message, 'error');
+            // Mostrar en la barra de estado también
+            actualizarEstado('❌ ' + e.message, '❌', 'status-error');
         }
     }
 
-    // ---- Variables globales ----
+    // ============================================================
+    //  RESTA DEL SISTEMA (igual que antes)
+    // ============================================================
     let currentUser = null;
 
     const loginView = document.getElementById('login-view');
@@ -300,6 +302,17 @@
     function ocultarAlerta(id) {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
+    }
+
+    function mostrarAlertaGlobal(mensaje, tipo = 'info') {
+        const loginAlert = document.getElementById('login-alert');
+        if (loginAlert) {
+            loginAlert.textContent = mensaje;
+            loginAlert.className = `alert alert-${tipo}`;
+            loginAlert.classList.remove('hidden');
+        } else {
+            alert(mensaje);
+        }
     }
 
     // ---- Autenticación ----
@@ -383,7 +396,28 @@
         }
     }
 
-    // ---- ADMIN: Funciones ----
+    // ---- Función para ver archivo HTML (opcional) ----
+    function verArchivoHTML(id, tipo) {
+        try {
+            const data = datosCache;
+            let item = null;
+            if (tipo === 'clase') item = (data.clases || []).find(c => c.id === id);
+            else if (tipo === 'cuestionario') item = (data.cuestionarios || []).find(c => c.id === id);
+            if (!item || !item.archivoHTML) {
+                mostrarAlertaGlobal('❌ No se encontró contenido HTML.', 'error');
+                return;
+            }
+            const ventana = window.open('', '_blank', 'width=900,height=600');
+            ventana.document.write(item.archivoHTML);
+            ventana.document.close();
+        } catch (e) {
+            mostrarAlertaGlobal('❌ Error al abrir HTML: ' + e.message, 'error');
+        }
+    }
+
+    // ============================================================
+    //  ADMIN: Funciones
+    // ============================================================
     function cargarAdminView(view) {
         document.querySelectorAll('#admin-menu a').forEach(a => a.classList.remove('active'));
         const target = document.querySelector(`#admin-menu a[data-view="${view}"]`);
@@ -403,19 +437,28 @@
             const data = await obtenerDatos();
             const cursos = data.cursos || [];
             let html = `<h3>📋 Todos los Cursos (${cursos.length})</h3>`;
-            if (cursos.length === 0) html += '<p>No hay cursos.</p>';
-            else {
+            if (cursos.length === 0) {
+                html += `<p>No hay cursos creados.</p>`;
+            } else {
                 cursos.forEach(curso => {
                     const clases = (data.clases || []).filter(c => c.cursoId === curso.id);
                     const cues = (data.cuestionarios || []).filter(c => c.cursoId === curso.id);
                     html += `
                         <div class="card">
                             <div class="card-header">
-                                <div><strong>${curso.titulo}</strong> <span class="badge">${clases.length} clases | ${cues.length} cuestionarios</span></div>
-                                <button class="btn btn-danger" onclick="eliminarCurso('${curso.id}')">Eliminar</button>
+                                <div>
+                                    <strong>${curso.titulo}</strong>
+                                    <span class="badge">${clases.length} clases | ${cues.length} cuestionarios</span>
+                                </div>
+                                <div>
+                                    <button class="btn btn-danger" onclick="eliminarCurso('${curso.id}')">Eliminar</button>
+                                </div>
                             </div>
-                            <p>${curso.descripcion || ''}</p>
-                            <button class="btn btn-outline" onclick="verDetalleCursoAdmin('${curso.id}')">Ver detalle</button>
+                            <p style="color:#5a6e8a;">${curso.descripcion || 'Sin descripción'}</p>
+                            <small>Creado por: ${curso.creador || 'admin'}</small>
+                            <div style="margin-top:10px;">
+                                <button class="btn btn-outline" onclick="verDetalleCursoAdmin('${curso.id}')">Ver detalle</button>
+                            </div>
                         </div>
                     `;
                 });
@@ -440,7 +483,7 @@
                         <h3>📘 ${curso.titulo}</h3>
                         <button class="btn" onclick="renderAdminCursos()">⬅ Volver</button>
                     </div>
-                    <p>${curso.descripcion || ''}</p>
+                    <p>${curso.descripcion || 'Sin descripción'}</p>
                     <hr>
                     <h4>Clases (${clases.length})</h4>
             `;
@@ -455,7 +498,7 @@
                                     <span class="badge">📄 Archivo HTML</span>
                                     <button class="btn btn-outline" onclick="verArchivoHTML('${clase.id}', 'clase')">Ver HTML</button>
                                 </div>
-                            ` : `<p>${clase.contenido || ''}</p>`}
+                            ` : `<p>${clase.contenido || 'Sin contenido'}</p>`}
                             <small>${clase.fecha || ''}</small>
                         </div>
                     `;
@@ -484,24 +527,6 @@
         }
     }
 
-    function verArchivoHTML(id, tipo) {
-        try {
-            const data = datosCache;
-            let item = null;
-            if (tipo === 'clase') item = (data.clases || []).find(c => c.id === id);
-            else if (tipo === 'cuestionario') item = (data.cuestionarios || []).find(c => c.id === id);
-            if (!item || !item.archivoHTML) {
-                alert('No se encontró contenido HTML.');
-                return;
-            }
-            const ventana = window.open('', '_blank', 'width=900,height=600');
-            ventana.document.write(item.archivoHTML);
-            ventana.document.close();
-        } catch (e) {
-            alert('Error: ' + e.message);
-        }
-    }
-
     async function eliminarCurso(cursoId) {
         if (!confirm('¿Eliminar curso y su contenido?')) return;
         try {
@@ -510,9 +535,10 @@
             data.clases = (data.clases || []).filter(c => c.cursoId !== cursoId);
             data.cuestionarios = (data.cuestionarios || []).filter(c => c.cursoId !== cursoId);
             await guardarDatos(data);
+            mostrarAlertaGlobal('✅ Curso eliminado', 'success');
             renderAdminCursos();
         } catch (e) {
-            alert('Error: ' + e.message);
+            mostrarAlertaGlobal('❌ Error al eliminar: ' + e.message, 'error');
         }
     }
 
@@ -558,10 +584,10 @@
         });
     }
 
-    // ---- ADMIN: Crear clase ----
+    // ---- ADMIN: Crear clase (simplificada) ----
     function renderAdminCrearClase() {
-        const data = datosCache;
-        const cursos = data?.cursos || [];
+        const data = datosCache || { cursos: [] };
+        const cursos = data.cursos || [];
         let options = '<option value="">Selecciona un curso</option>';
         cursos.forEach(c => options += `<option value="${c.id}">${c.titulo}</option>`);
 
@@ -609,46 +635,50 @@
             const archivoInput = document.getElementById('clase-archivo');
             if (!cursoId || !titulo) return;
 
-            const data = await obtenerDatos();
-            const nuevaClase = {
-                id: generarId(),
-                cursoId,
-                titulo,
-                contenido: contenido || '',
-                fecha: new Date().toLocaleDateString(),
-                archivoHTML: null
-            };
+            try {
+                const data = await obtenerDatos();
+                const nuevaClase = {
+                    id: generarId(),
+                    cursoId,
+                    titulo,
+                    contenido: contenido || '',
+                    fecha: new Date().toLocaleDateString(),
+                    archivoHTML: null
+                };
 
-            if (archivoInput.files.length > 0) {
-                const file = archivoInput.files[0];
-                const reader = new FileReader();
-                reader.onload = async function(event) {
-                    nuevaClase.archivoHTML = event.target.result;
+                if (archivoInput.files.length > 0) {
+                    const file = archivoInput.files[0];
+                    const reader = new FileReader();
+                    reader.onload = async function(event) {
+                        nuevaClase.archivoHTML = event.target.result;
+                        if (!data.clases) data.clases = [];
+                        data.clases.push(nuevaClase);
+                        await guardarDatos(data);
+                        mostrarAlerta('clase-creada-alert', '✅ Clase creada con HTML.', 'success');
+                        document.getElementById('form-crear-clase').reset();
+                        document.getElementById('clase-archivo-info').classList.add('hidden');
+                        setTimeout(() => ocultarAlerta('clase-creada-alert'), 2500);
+                    };
+                    reader.readAsText(file);
+                } else {
                     if (!data.clases) data.clases = [];
                     data.clases.push(nuevaClase);
                     await guardarDatos(data);
-                    mostrarAlerta('clase-creada-alert', '✅ Clase creada con HTML.', 'success');
+                    mostrarAlerta('clase-creada-alert', '✅ Clase creada.', 'success');
                     document.getElementById('form-crear-clase').reset();
                     document.getElementById('clase-archivo-info').classList.add('hidden');
                     setTimeout(() => ocultarAlerta('clase-creada-alert'), 2500);
-                };
-                reader.readAsText(file);
-            } else {
-                if (!data.clases) data.clases = [];
-                data.clases.push(nuevaClase);
-                await guardarDatos(data);
-                mostrarAlerta('clase-creada-alert', '✅ Clase creada.', 'success');
-                document.getElementById('form-crear-clase').reset();
-                document.getElementById('clase-archivo-info').classList.add('hidden');
-                setTimeout(() => ocultarAlerta('clase-creada-alert'), 2500);
+                }
+            } catch (e) {
+                mostrarAlerta('clase-creada-alert', '❌ Error: ' + e.message, 'error');
             }
         });
     }
 
-    // ---- ADMIN: Crear cuestionario ----
+    // ---- ADMIN: Crear cuestionario (simplificada) ----
     function renderAdminCrearCuestionario() {
-        const data = datosCache;
-        const cursos = data?.cursos || [];
+        const data = datosCache || { cursos: [] };
+        const cursos = data.cursos || [];
         let options = '<option value="">Selecciona un curso</option>';
         cursos.forEach(c => options += `<option value="${c.id}">${c.titulo}</option>`);
 
@@ -704,7 +734,7 @@
                         <strong>Pregunta ${idx+1}:</strong> ${p.pregunta}
                         <br><small>Opciones: ${p.opciones.join(' | ')}</small>
                         <br><small style="color:#28a745;">Correcta: ${p.opciones[p.respuestaCorrecta]}</small>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarPreguntaTemp(${idx})">Eliminar</button>
+                        <button class="btn btn-danger" onclick="eliminarPreguntaTemp(${idx})">Eliminar</button>
                     </div>
                 `;
             });
@@ -773,51 +803,57 @@
             const archivoInput = document.getElementById('cue-archivo');
             if (!cursoId || !titulo) return;
 
-            const data = await obtenerDatos();
-            const nuevoCue = {
-                id: generarId(),
-                cursoId,
-                titulo,
-                preguntas: [],
-                archivoHTML: null
-            };
+            try {
+                const data = await obtenerDatos();
+                const nuevoCue = {
+                    id: generarId(),
+                    cursoId,
+                    titulo,
+                    preguntas: [],
+                    archivoHTML: null
+                };
 
-            if (archivoInput.files.length > 0) {
-                const file = archivoInput.files[0];
-                const reader = new FileReader();
-                reader.onload = async function(event) {
-                    nuevoCue.archivoHTML = event.target.result;
+                if (archivoInput.files.length > 0) {
+                    const file = archivoInput.files[0];
+                    const reader = new FileReader();
+                    reader.onload = async function(event) {
+                        nuevoCue.archivoHTML = event.target.result;
+                        if (!data.cuestionarios) data.cuestionarios = [];
+                        data.cuestionarios.push(nuevoCue);
+                        await guardarDatos(data);
+                        mostrarAlerta('cue-creado-alert', '✅ Cuestionario con HTML.', 'success');
+                        document.getElementById('form-crear-cuestionario').reset();
+                        window.preguntasTemp = [];
+                        renderPreguntas();
+                        document.getElementById('cue-archivo-info').classList.add('hidden');
+                        setTimeout(() => ocultarAlerta('cue-creado-alert'), 2500);
+                    };
+                    reader.readAsText(file);
+                } else {
+                    if (window.preguntasTemp.length === 0) {
+                        alert('Agrega preguntas o sube un HTML.');
+                        return;
+                    }
+                    nuevoCue.preguntas = JSON.parse(JSON.stringify(window.preguntasTemp));
                     if (!data.cuestionarios) data.cuestionarios = [];
                     data.cuestionarios.push(nuevoCue);
                     await guardarDatos(data);
-                    mostrarAlerta('cue-creado-alert', '✅ Cuestionario con HTML.', 'success');
-                    document.getElementById('form-crear-cuestionario').reset();
+                    mostrarAlerta('cue-creado-alert', '✅ Cuestionario creado.', 'success');
                     window.preguntasTemp = [];
                     renderPreguntas();
+                    document.getElementById('form-crear-cuestionario').reset();
                     document.getElementById('cue-archivo-info').classList.add('hidden');
                     setTimeout(() => ocultarAlerta('cue-creado-alert'), 2500);
-                };
-                reader.readAsText(file);
-            } else {
-                if (window.preguntasTemp.length === 0) {
-                    alert('Agrega preguntas o sube un HTML.');
-                    return;
                 }
-                nuevoCue.preguntas = JSON.parse(JSON.stringify(window.preguntasTemp));
-                if (!data.cuestionarios) data.cuestionarios = [];
-                data.cuestionarios.push(nuevoCue);
-                await guardarDatos(data);
-                mostrarAlerta('cue-creado-alert', '✅ Cuestionario creado.', 'success');
-                window.preguntasTemp = [];
-                renderPreguntas();
-                document.getElementById('form-crear-cuestionario').reset();
-                document.getElementById('cue-archivo-info').classList.add('hidden');
-                setTimeout(() => ocultarAlerta('cue-creado-alert'), 2500);
+            } catch (e) {
+                mostrarAlerta('cue-creado-alert', '❌ Error: ' + e.message, 'error');
             }
         });
     }
 
-    // ---- USER: Funciones ----
+    // ============================================================
+    //  USER (ESTUDIANTE): Funciones
+    // ============================================================
     function cargarUserView(view) {
         document.querySelectorAll('#user-menu a').forEach(a => a.classList.remove('active'));
         const target = document.querySelector(`#user-menu a[data-view="${view}"]`);
@@ -830,8 +866,9 @@
             const data = await obtenerDatos();
             const cursos = data.cursos || [];
             let html = `<h3>📚 Cursos Disponibles (${cursos.length})</h3>`;
-            if (cursos.length === 0) html += '<p>No hay cursos disponibles.</p>';
-            else {
+            if (cursos.length === 0) {
+                html += `<p>No hay cursos disponibles.</p>`;
+            } else {
                 cursos.forEach(curso => {
                     html += `
                         <div class="card curso-item" onclick="verDetalleCursoUser('${curso.id}')">
@@ -839,7 +876,7 @@
                                 <strong>${curso.titulo}</strong>
                                 <span class="badge">Ver detalle ➜</span>
                             </div>
-                            <p>${curso.descripcion || ''}</p>
+                            <p style="color:#5a6e8a;">${curso.descripcion || 'Sin descripción'}</p>
                         </div>
                     `;
                 });
@@ -864,7 +901,7 @@
                         <h3>📘 ${curso.titulo}</h3>
                         <button class="btn" onclick="renderUserCursos()">⬅ Volver</button>
                     </div>
-                    <p>${curso.descripcion || ''}</p>
+                    <p>${curso.descripcion || 'Sin descripción'}</p>
                     <hr>
                     <h4>Clases (${clases.length})</h4>
             `;
@@ -879,7 +916,7 @@
                                     <span class="badge">📄 Archivo HTML</span>
                                     <button class="btn btn-outline" onclick="verArchivoHTML('${clase.id}', 'clase')">Ver HTML</button>
                                 </div>
-                            ` : `<p>${clase.contenido || ''}</p>`}
+                            ` : `<p>${clase.contenido || 'Sin contenido'}</p>`}
                             <small>${clase.fecha || ''}</small>
                         </div>
                     `;
@@ -1020,8 +1057,9 @@
 
     init();
 
+    console.log('✅ Sistema conectado a JSONBin');
     console.log('🔐 Admin: admin@sistema.com / admin123');
-    console.log('💡 Usando JSONBin (sin token). Solo cambia el BIN_ID.');
+    console.log('💡 Si ves error 401, verifica tu Access Key en la configuración de JSONBin.');
 </script>
 
 </body>
