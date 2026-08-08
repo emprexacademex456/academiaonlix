@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Educativo - JSONBin</title>
+    <title>Sistema Educativo - Firebase</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: #f0f4f8; display: flex; justify-content: center; padding: 30px; }
@@ -129,81 +129,80 @@
     </div>
 </div>
 
+<!-- ============================================================ -->
+<!--  SDK DE FIREBASE (versión compat)                             -->
+<!-- ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js">
+</script>
+
 <script>
     // ============================================================
-    //  CONFIGURACIÓN JSONBIN - ¡CAMBIAR AQUÍ!
+    //  CONFIGURACIÓN DE FIREBASE - ¡CAMBIAR AQUÍ!
     // ============================================================
-    const JSONBIN_ID = '6a765349f5f4af5e29f97604';              // Ej: 'abc123def456'
-    const JSONBIN_ACCESS_KEY = '$2a$10$EzX7psRt3kC2D8rxP5oKJ.JEeR46fhSo9uC7l/WYDRg8eoI4TJ5Gi'; // Tu Access Key (de la cuenta)
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBatRR_9EiXEGSUfMyQK3QsB_xd5rNjpJk",
+  authDomain: "academiacourse-195c7.firebaseapp.com",
+  projectId: "academiacourse-195c7",
+  storageBucket: "academiacourse-195c7.firebasestorage.app",
+  messagingSenderId: "614969564903",
+  appId: "1:614969564903:web:7333aa4766b602e1358c42",
+  measurementId: "G-JY30TPBVG3"
+};
 
-    const API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Referencia al documento único donde guardaremos todo
+    const DOC_REF = db.collection('sistema').doc('datos');
 
     // ============================================================
-    //  FUNCIONES DE JSONBIN
+    //  FUNCIONES DE PERSISTENCIA (reemplazan a JSONBin)
     // ============================================================
     let datosCache = null;
 
     async function cargarDatosRemotos() {
-        actualizarEstado('🔄 Cargando desde JSONBin...', '⏳');
+        actualizarEstado('🔄 Cargando desde Firebase...', '⏳');
         try {
-            // Para leer bins públicos no se necesita clave, pero la enviamos por si acaso
-            const response = await fetch(API_URL, {
-                headers: {
-                    'X-Access-Key': JSONBIN_ACCESS_KEY,
-                    'Content-Type': 'application/json'
-                }
-            });
+            const docSnap = await DOC_REF.get();
+            let contenido = { users: [], cursos: [], clases: [], cuestionarios: [] };
 
-            if (response.status === 401) {
-                throw new Error('❌ Error 401: Access Key inválida o no tienes permisos para este bin. Verifica tu clave y que el bin sea público.');
-            }
-            if (response.status === 404) {
-                throw new Error('❌ Error 404: Bin no encontrado. Verifica el ID.');
-            }
-            if (!response.ok) {
-                throw new Error(`❌ Error HTTP ${response.status}: ${response.statusText}`);
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                // Aseguramos que todas las propiedades existan
+                contenido = {
+                    users: data.users || [],
+                    cursos: data.cursos || [],
+                    clases: data.clases || [],
+                    cuestionarios: data.cuestionarios || []
+                };
+            } else {
+                // Si no existe el documento, lo crearemos al guardar
+                console.log('📄 Documento aún no creado. Se creará al primer guardado.');
             }
 
-            const data = await response.json();
-            // JSONBin devuelve { record: { ... } }
-            const contenido = data.record || { users: [], cursos: [], clases: [], cuestionarios: [] };
             datosCache = contenido;
-            actualizarEstado('✅ Conectado a JSONBin', '✅', 'status-ok');
+            actualizarEstado('✅ Conectado a Firebase', '✅', 'status-ok');
             return contenido;
         } catch (error) {
-            console.error('Error al cargar datos:', error);
+            console.error('Error al cargar desde Firebase:', error);
             actualizarEstado('❌ ' + error.message, '❌', 'status-error');
             throw error;
         }
     }
 
     async function guardarDatosRemotos(data) {
-        actualizarEstado('🔄 Guardando en JSONBin...', '⏳');
+        actualizarEstado('🔄 Guardando en Firebase...', '⏳');
         try {
-            const response = await fetch(API_URL, {
-                method: 'PUT',
-                headers: {
-                    'X-Access-Key': JSONBIN_ACCESS_KEY,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-            if (response.status === 401) {
-                throw new Error('❌ Error 401: Access Key inválida. Verifica tu clave de acceso en la configuración de tu cuenta JSONBin.');
-            }
-            if (response.status === 404) {
-                throw new Error('❌ Error 404: Bin no encontrado. Verifica el ID.');
-            }
-            if (!response.ok) {
-                throw new Error(`❌ Error HTTP ${response.status}: ${response.statusText}`);
-            }
-
+            await DOC_REF.set(data);
             datosCache = data;
-            actualizarEstado('✅ Datos guardados en JSONBin', '✅', 'status-ok');
-            return await response.json();
+            actualizarEstado('✅ Datos guardados en Firebase', '✅', 'status-ok');
+            return data;
         } catch (error) {
-            console.error('Error al guardar datos:', error);
+            console.error('Error al guardar en Firebase:', error);
             actualizarEstado('❌ ' + error.message, '❌', 'status-error');
             throw error;
         }
@@ -217,7 +216,7 @@
     }
 
     // ============================================================
-    //  UTILERÍAS
+    //  UTILERÍAS (igual que antes)
     // ============================================================
     function generarId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
@@ -261,14 +260,14 @@
             }
         } catch (e) {
             console.error('Error en inicialización:', e);
-            mostrarAlertaGlobal('❌ Error al conectar con JSONBin: ' + e.message, 'error');
-            // Mostrar en la barra de estado también
+            mostrarAlertaGlobal('❌ Error al conectar con Firebase: ' + e.message, 'error');
             actualizarEstado('❌ ' + e.message, '❌', 'status-error');
         }
     }
 
     // ============================================================
-    //  RESTA DEL SISTEMA (igual que antes)
+    //  RESTA DEL SISTEMA (¡EXACTAMENTE IGUAL QUE ANTES!)
+    //  (todo el código de autenticación, cursos, clases, etc. no ha cambiado)
     // ============================================================
     let currentUser = null;
 
@@ -416,7 +415,7 @@
     }
 
     // ============================================================
-    //  ADMIN: Funciones
+    //  ADMIN: Funciones (sin cambios)
     // ============================================================
     function cargarAdminView(view) {
         document.querySelectorAll('#admin-menu a').forEach(a => a.classList.remove('active'));
@@ -584,7 +583,7 @@
         });
     }
 
-    // ---- ADMIN: Crear clase (simplificada) ----
+    // ---- ADMIN: Crear clase ----
     function renderAdminCrearClase() {
         const data = datosCache || { cursos: [] };
         const cursos = data.cursos || [];
@@ -675,7 +674,7 @@
         });
     }
 
-    // ---- ADMIN: Crear cuestionario (simplificada) ----
+    // ---- ADMIN: Crear cuestionario ----
     function renderAdminCrearCuestionario() {
         const data = datosCache || { cursos: [] };
         const cursos = data.cursos || [];
@@ -852,7 +851,7 @@
     }
 
     // ============================================================
-    //  USER (ESTUDIANTE): Funciones
+    //  USER (ESTUDIANTE): Funciones (sin cambios)
     // ============================================================
     function cargarUserView(view) {
         document.querySelectorAll('#user-menu a').forEach(a => a.classList.remove('active'));
@@ -1057,9 +1056,9 @@
 
     init();
 
-    console.log('✅ Sistema conectado a JSONBin');
+    console.log('✅ Sistema conectado a Firebase Firestore');
     console.log('🔐 Admin: admin@sistema.com / admin123');
-    console.log('💡 Si ves error 401, verifica tu Access Key en la configuración de JSONBin.');
+    console.log('💡 Recuerda configurar las reglas de seguridad en modo prueba.');
 </script>
 
 </body>
